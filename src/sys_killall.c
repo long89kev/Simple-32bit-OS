@@ -46,7 +46,6 @@ int __sys_killall(struct pcb_t *caller, struct sc_regs* regs)
     while((proc = queue_traversal(caller->running_list, &idx)) != NULL) {
         if (strcmp(proc->path, proc_name) == 0) {
             pid_to_kill[pid_to_kill_count++] = proc->pid;
-            break;
         }
     }
 
@@ -55,7 +54,6 @@ int __sys_killall(struct pcb_t *caller, struct sc_regs* regs)
     while((proc = queue_traversal(caller->mlq_ready_queue, &idx)) != NULL) {
         if (strcmp(proc->path, proc_name) == 0) {
             pid_to_kill[pid_to_kill_count++] = proc->pid;
-            break;
         }
     }
     

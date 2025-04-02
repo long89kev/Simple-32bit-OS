@@ -15,6 +15,29 @@ void enqueue(struct queue_t * q, struct pcb_t * proc) {
         q->size++;
 }
 
+struct pcb_t * queue_traversal(struct queue_t * q, int *idx) {
+        if(q == NULL || q->size == 0) return NULL;
+        if (idx == NULL) return NULL;
+        if (*idx >= q->size) return NULL;
+        struct pcb_t *proc = q->proc[*idx];
+        (*idx)++;
+        return proc;
+}
+
+void delete_pid(struct queue_t * q, uint32_t pid) {
+        if(q == NULL || q->size == 0) return;
+        for (int i = 0; i < q->size; i++) {
+                if (q->proc[i]->pid == pid) {
+                        for (int j = i; j < q->size - 1; j++) {
+                                q->proc[j] = q->proc[j + 1];
+                        }
+                        q->size--;
+                        return;
+                }
+        }
+        return;
+}
+
 struct pcb_t * dequeue(struct queue_t * q) {
         /* TODO: return a pcb whose prioprity is the highest
          * in the queue [q] and remember to remove it from q

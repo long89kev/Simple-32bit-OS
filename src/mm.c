@@ -86,24 +86,48 @@ int vmap_page_range(struct pcb_t *caller,           // process call
                     struct framephy_struct *frames, // list of the mapped frames
                     struct vm_rg_struct *ret_rg)    // return mapped region, the real mapped fp
 {                                                   // no guarantee all given pages are mapped
-  //struct framephy_struct *fpit;
+  struct framephy_struct *fpit = frames;
   int pgit = 0;
   int pgn = PAGING_PGN(addr);
 
-  /* TODO: update the rg_end and rg_start of ret_rg 
-  //ret_rg->rg_end =  ....
-  //ret_rg->rg_start = ...
-  //ret_rg->vmaid = ...
-  */
+  // TODO: update the rg_end and rg_start of ret_rg 
+  ret_rg->rg_end = addr;
+  ret_rg->rg_start = addr;
+  ret_rg->vmaid = caller->mm->mmap->vm_id;
+  
+  //fpit->fp_next = frames;
 
+
+  while(fpit->fp_next != NULL && pgit < pgnum){
+    uint32_t * pte = &caller->mm->pgd[pgn]; //page_table_entry = caller->mm->pgd[] like the teacher said
+
+    pte_set_fpn(pte, fpit->fpn);  //map the pte into a frame fpit, gpt the function for explain
+    enlist_pgn_node(&caller->mm->fifo_pgn, pgn); //enlist into page queue
+    
+    fpit = fpit->fp_next;   //move to the next physic frame
+    addr += PAGING_PAGESZ;  //move the addr to the addr of the next page
+    pgn = PAGING_PGN(addr); //reset the pgn value to match new addr
+    pgit++;                 //(pgit = page_iterator) number of pages has been mapped increase by 1 
+    ret_rg->rg_end = addr;  //end of the register is set to match new addr
+  }
   /* TODO map range of frame to address space
    *      [addr to addr + pgnum*PAGING_PAGESZ
    *      in page table caller->mm->pgd[]
    */
+  while(pgit < pgnum){
+    int swap_frame_id;
+    uint32_t * pte = &caller->mm->pgd[pgn];
 
+    MEMPHY_get_freefp(pte, &swap_frame_id); //allocate frame_id from secondary storage to swap
+    pte_set_swap(pte, 0, swap_frame_id);    // set swap bit and val for the page 
+
+    addr += PAGING_PAGESZ;  //move the addr to the addr of the next page
+    pgn = PAGING_PGN(addr); //reset the pgn value to match new addr
+    pgit++;                 //(pgit = page_iterator) number of pages has been mapped increase by 1 
+    ret_rg->rg_end = addr;  //end of the register is set to match new addr
+  }
   /* Tracking for later page replacement activities (if needed)
    * Enqueue new usage page */
-  enlist_pgn_node(&caller->mm->fifo_pgn, pgn + pgit);
 
   return 0;
 }

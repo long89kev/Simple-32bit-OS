@@ -51,6 +51,44 @@ struct pcb_t * get_mlq_proc(void) {
 	/*TODO: get a process from PRIORITY [ready_queue].
 	 * Remember to use lock to protect the queue.
 	 * */
+
+	pthread_mutex_lock(&queue_lock);
+
+	static unsigned long curr_prio = 0;
+	static int curr_slot = 0;
+
+	int found_proc = 0;
+
+	for(int i = 0; i < MAX_PRIO && !found_proc; ++i) {
+		unsigned long prio = (curr_prio + i) % MAX_PRIO;
+
+		if(!empty(&mlq_ready_queue[prio])) {
+
+			proc = dequeue(&mlq_ready_queue[prio]);
+			if(proc != NULL) {
+				found_proc = 1;
+
+				if(curr_prio == prio) {
+					curr_slot = (curr_slot + 1) % slot[prio];
+					if(curr_slot == 0) {
+						curr_prio = (curr_prio + 1) % MAX_PRIO;
+						curr_slot = 0;
+					}
+				} else {
+					curr_prio = prio;
+					curr_slot = 0;
+				}
+			}
+			break;
+		}
+	}
+
+	if(!found_proc) {
+		curr_prio = 0;
+		curr_slot = 0;
+	}
+
+	pthread_mutex_unlock(&queue_lock);
 	return proc;	
 }
 
@@ -78,7 +116,9 @@ void put_proc(struct pcb_t * proc) {
 	/* TODO: put running proc to running_list */
 
 	//new code
-
+	pthread_mutex_lock(&queue_lock);
+	enqueue(&run_queue, proc); //Adding proc that return to the scheduler after time slice
+	pthread_mutex_unlock(&queue_lock);
 
 	return put_mlq_proc(proc);
 }
@@ -89,6 +129,9 @@ void add_proc(struct pcb_t * proc) {
 	proc->running_list = & running_list;
 
 	/* TODO: put running proc to running_list */
+	pthread_mutex_lock(&queue_lock);
+	enqueue(&ready_queue, proc); //Adding proc that first time enter the scheduler 
+	pthread_mutex_unlock(&queue_lock);
 
 	return add_mlq_proc(proc);
 }
@@ -98,6 +141,19 @@ struct pcb_t * get_proc(void) {
 	/*TODO: get a process from [ready_queue].
 	 * Remember to use lock to protect the queue.
 	 * */
+
+	pthread_mutex_lock(&queue_lock);
+
+	if(!empty(&ready_queue)) {
+		proc = dequeue(&ready_queue);
+	} else {
+		if(!empty(&run_queue)) {
+			proc = dequeue(&run_queue);
+		}
+	}
+
+	pthread_mutex_unlock(&queue_lock);
+
 	return proc;
 }
 
@@ -108,7 +164,8 @@ void put_proc(struct pcb_t * proc) {
 	/* TODO: put running proc to running_list */
 
 	pthread_mutex_lock(&queue_lock);
-	enqueue(&run_queue, proc);
+	enqueue(&running_list, proc); 
+	enqueue(&run_queue, proc); //Adding proc that return to the scheduler after time slice
 	pthread_mutex_unlock(&queue_lock);
 }
 
@@ -119,7 +176,8 @@ void add_proc(struct pcb_t * proc) {
 	/* TODO: put running proc to running_list */
 
 	pthread_mutex_lock(&queue_lock);
-	enqueue(&ready_queue, proc);
+	enqueue(&running_list, proc);
+	enqueue(&ready_queue, proc); //Adding proc that first time enter the scheduler
 	pthread_mutex_unlock(&queue_lock);	
 }
 #endif

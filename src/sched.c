@@ -77,7 +77,7 @@ void put_proc(struct pcb_t * proc) {
 
 	/* TODO: put running proc to running_list */
 
-	//under development
+	//new code
 
 
 	return put_mlq_proc(proc);

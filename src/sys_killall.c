@@ -1,17 +1,18 @@
 /*
- * Copyright (C) 2025 pdnguyen of HCMC University of Technology VNU-HCM
- */
+* Copyright (C) 2025 pdnguyen of HCMC University of Technology VNU-HCM
+*/
 
 /* Sierra release
- * Source Code License Grant: The authors hereby grant to Licensee
- * personal permission to use and modify the Licensed Source Code
- * for the sole purpose of studying while attending the course CO2018.
- */
+* Source Code License Grant: The authors hereby grant to Licensee
+* personal permission to use and modify the Licensed Source Code
+* for the sole purpose of studying while attending the course CO2018.
+*/
 
 #include "common.h"
 #include "syscall.h"
 #include "stdio.h"
 #include "libmem.h"
+#include "string.h"
 
 int __sys_killall(struct pcb_t *caller, struct sc_regs* regs)
 {
@@ -34,15 +35,42 @@ int __sys_killall(struct pcb_t *caller, struct sc_regs* regs)
     printf("The procname retrieved from memregionid %d is \"%s\"\n", memrg, proc_name);
 
     /* TODO: Traverse proclist to terminate the proc
-     *       stcmp to check the process match proc_name
-     */
+    *       stcmp to check the process match proc_name
+    */
+
+    struct pcb_t * proc = NULL;
+    int idx = 0;
+    int pid_to_kill[MAX_PRIO * 10 + 5];
+    int pid_to_kill_count = 0;
+
+    while((proc = queue_traversal(caller->running_list, &idx)) != NULL) {
+        if (strcmp(proc->path, proc_name) == 0) {
+            pid_to_kill[pid_to_kill_count++] = proc->pid;
+        }
+    }
+
+    idx = 0;
+
+    while((proc = queue_traversal(caller->mlq_ready_queue, &idx)) != NULL) {
+        if (strcmp(proc->path, proc_name) == 0) {
+            pid_to_kill[pid_to_kill_count++] = proc->pid;
+        }
+    }
+    
     //caller->running_list
-    //caller->mlq_ready_queu
+    // caller->mlq_ready_queue
 
     /* TODO Maching and terminating 
-     *       all processes with given
-     *        name in var proc_name
-     */
+    *       all processes with given
+    *        name in var proc_name
+    */
+
+    while(pid_to_kill_count > 0) {
+        int pid = pid_to_kill[--pid_to_kill_count];
+        delete_pid(caller->running_list, pid);
+        delete_pid(caller->mlq_ready_queue, pid);
+    }
 
     return 0; 
 }
+ 

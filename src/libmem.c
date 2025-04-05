@@ -502,6 +502,7 @@ int get_free_vmrg_area(struct pcb_t *caller, int vmaid, int size, struct vm_rg_s
 
   if (rgit == NULL)
     return -1;
+    
 
   /* Probe unintialized newrg */
   newrg->rg_start = newrg->rg_end = -1;

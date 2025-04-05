@@ -154,15 +154,14 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
   /* TODO: allocate the page 
    */
     if (MEMPHY_get_freefp(caller->mram, &fpn) == 0)
-    {
-      newfp_str->fpn = fpn;
-      newfp_str = malloc(sizeof(struct framephy_struct));
-
+      {
+            newfp_str = malloc(sizeof(struct framephy_struct));
+           
             // Initialize the new frame structure
             newfp_str->fpn = fpn; //
             newfp_str->owner = caller->mm; 
             newfp_str->fp_next = *frm_lst;
-            
+            *frm_lst = newfp_str;
     }
     else
     { // TODO: ERROR CODE of obtaining somes but not enough frames

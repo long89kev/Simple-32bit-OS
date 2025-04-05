@@ -55,13 +55,21 @@ struct vm_rg_struct *get_vm_area_node_at_brk(struct pcb_t *caller, int vmaid, in
   struct vm_rg_struct * newrg; //declare new memory region
   /* TODO retrive current vma to obtain newrg, current comment out due to compiler redundant warning*/
   struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid); //get vm area by vmaid
-
+  
   newrg = malloc(sizeof(struct vm_rg_struct)); //allocate mem for new region
-
+  int aligned_size = alignedsz; 
+  // check if increase sbrk exceeds VMA boundary (forum, teacher said) not sure, need check
+  if (cur_vma->sbrk + aligned_size > cur_vma->vm_end) {
+    return NULL; 
+  }
+  
   /* TODO: update the newrg boundary
   */
-  newrg->rg_start = cur_vma->sbrk;  //set start address to the top pointing of current vma, read function name
-  newrg->rg_end = newrg->rg_start + size; //basic stuff
+ newrg->rg_start = cur_vma->sbrk;  //set start address to the top pointing of current vma, read function name
+ newrg->rg_end = newrg->rg_start + size; //basic stuff
+ 
+ cur_vma->sbrk = newrg->rg_end; //advance sbrk to the end of the new region (sbrk lift up)
+ //STILL NOT SURE, FIX IF I MISUNDERSTAND ANYTHING
 
   return newrg;
 }
@@ -119,10 +127,16 @@ int inc_vma_limit(struct pcb_t *caller, int vmaid, int inc_sz)
     return -1; /*Overlap and failed allocation */
 
   /* TODO: Obtain the new vm area based on vmaid */
-  cur_vma->vm_end +=  inc_sz; //increase the virtual memory area limit by inc_sz 
-  // cur_vma->vm_end = area->rg_end;
+  //cur_vma->vm_end +=  inc_sz; //increase the virtual memory area limit by inc_sz //cai nay chua allign nen co the bi sai
+  /* 
+  Example:
+  Page size = 256B, inc_sz = 300B.
+  inc_amt = 512B (next multiple of 256B).
+  vm_end must grow by 512B (not 300B) to ensure alignment.
+  Otherwise, the last 44B (300B - 256B) would overlap into the next page, causing corruption. MO HAM ALIGN LEN DOC
+  */
+  cur_vma->vm_end = old_end + inc_amt;  // use inc_amt (khi da allign) to increase. ensures vm_end always lands on a page boundary.
   // inc_limit_ret...
-
   if (vm_map_ram(caller, area->rg_start, area->rg_end, 
                     old_end, incnumpage , newrg) < 0)
     return -1; /* Map the memory to MEMRAM */

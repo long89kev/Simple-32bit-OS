@@ -259,13 +259,13 @@ int init_mm(struct mm_struct *mm, struct pcb_t *caller)
   enlist_vm_rg_node(&vma0->vm_freerg_list, first_rg);
 
   /* TODO update VMA0 next */
-  // vma0->next = ...
+  vma0->vm_next = NULL;   //this is the only VMA at initialization, set its next pointer to NULL.
 
   /* Point vma owner backward */
-  vma0->vm_mm = mm; 
+  vma0->vm_mm = mm; //
 
   /* TODO: update mmap */
-  //mm->mmap = ...
+  mm->mmap = vma0;  //associate this VMA with the mm structure by setting mm->mmap to point to it.
 
   return 0;
 }

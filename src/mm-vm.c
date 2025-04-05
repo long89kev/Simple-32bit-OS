@@ -119,7 +119,8 @@ int inc_vma_limit(struct pcb_t *caller, int vmaid, int inc_sz)
     return -1; /*Overlap and failed allocation */
 
   /* TODO: Obtain the new vm area based on vmaid */
-  //cur_vma->vm_end... 
+  cur_vma->vm_end +=  inc_sz; //increase the virtual memory area limit by inc_sz 
+  // cur_vma->vm_end = area->rg_end;
   // inc_limit_ret...
 
   if (vm_map_ram(caller, area->rg_start, area->rg_end, 

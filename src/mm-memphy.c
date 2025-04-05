@@ -163,6 +163,19 @@ int MEMPHY_dump(struct memphy_struct *mp)
   /*TODO dump memphy contnt mp->storage
    *     for tracing the memory content
    */
+  //THIS FUNCTION MAINLY FOR DEBUGGING to see which memory locations are in use and what values they contain.
+   if (mp == NULL || mp->storage == NULL) {
+      return -1; // check null pointers
+   }
+   printf("---MEMORY DUMP (4-byte chunks)---\n");
+   uint32_t* word_storage = (uint32_t*)mp->storage; // casts byte array into a pointer to uint32_t (32 bit = 4 byte) for easy checking
+
+    for (int i = 0; i < mp->maxsz / 4; i++) { //loop over each 4-byte word in memory
+      if (word_storage[i] != 0)
+      {
+      printf("%08x: %08x\n", i * 4, word_storage[i]); // byte offset of the word in memory (vi du: index 2 = offset 8)
+      }
+    }
    return 0;
 }
 

@@ -72,12 +72,14 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
   struct vm_rg_struct rgnode;
 
   /* TODO: commit the vmaid */
-  // rgnode.vmaid
+  rgnode.vmaid = vmaid;
 
   if (get_free_vmrg_area(caller, vmaid, size, &rgnode) == 0)
   {
     caller->mm->symrgtbl[rgid].rg_start = rgnode.rg_start;
     caller->mm->symrgtbl[rgid].rg_end = rgnode.rg_end;
+
+    caller->mm->symrgtbl[rgid].vmaid = rgnode.vmaid;
  
     *alloc_addr = rgnode.rg_start;
 
@@ -89,16 +91,61 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
 
   /* TODO retrive current vma if needed, current comment out due to compiler redundant warning*/
   /*Attempt to increate limit to get space */
-  //struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
+  struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
 
 
-  //int inc_sz = PAGING_PAGE_ALIGNSZ(size);
-  //int inc_limit_ret;
+  int inc_sz = PAGING_PAGE_ALIGNSZ(size);
+  int inc_limit_ret;
 
   /* TODO retrive old_sbrk if needed, current comment out due to compiler redundant warning*/
-  //int old_sbrk = cur_vma->sbrk;
+  int old_sbrk = cur_vma->sbrk;
 
-  /* TODO INCREASE THE LIMIT as inovking systemcall 
+  if(vmaid == 0){ //heap
+    int gap_size = cur_vma->vm_end - old_sbrk;
+    
+    if(gap_size >= size){
+      cur_vma->sbrk = cur_vma->sbrk + size;
+
+      caller->mm->symrgtbl[rgid].rg_start = old_sbrk;
+      caller->mm->symrgtbl[rgid].rg_end = old_sbrk + size;
+      caller->mm->symrgtbl[rgid].vmaid = vmaid;
+      *alloc_addr = rgnode.rg_start;
+      
+    }
+    else{
+      inc_vma_limit(caller, vmaid, inc_sz);
+      caller->mm->symrgtbl[rgid].rg_start = old_sbrk;
+      caller->mm->symrgtbl[rgid].rg_end = old_sbrk + size;
+      caller->mm->symrgtbl[rgid].vmaid = vmaid;
+      *alloc_addr = rgnode.rg_start;
+      cur_vma->sbrk += size;
+      
+    }
+    return 0;
+
+  } 
+  else if(vmaid == 1){
+    int gap_size = old_sbrk - cur_vma->vm_end;
+    if(gap_size >= size){
+      caller->mm->symrgtbl[rgid].rg_start = old_sbrk - size;
+      caller->mm->symrgtbl[rgid].rg_end = old_sbrk;
+      caller->mm->symrgtbl[rgid].vmaid = vmaid;
+      *alloc_addr = rgnode.rg_end;
+    }
+    else{
+      inc_vma_limit(caller, vmaid, inc_sz);
+      caller->mm->symrgtbl[rgid].rg_start = old_sbrk - size;
+      caller->mm->symrgtbl[rgid].rg_end = old_sbrk;
+      caller->mm->symrgtbl[rgid].vmaid = vmaid;
+      *alloc_addr = rgnode.rg_start;
+      cur_vma->sbrk -= size;
+    }
+    return 0;
+  }
+  else{
+    return -1;
+  }
+    /* TODO INCREASE THE LIMIT as inovking systemcall 
    * sys_memap with SYSMEM_INC_OP 
    */
   //struct sc_regs regs;
@@ -462,6 +509,36 @@ int get_free_vmrg_area(struct pcb_t *caller, int vmaid, int size, struct vm_rg_s
   /* TODO Traverse on list of free vm region to find a fit space */
   //while (...)
   // ..
+  while(rgit != NULL && rgit->vmaid == vmaid){
+
+    if(rgit->rg_start + size <= rgit->rg_end){
+      newrg->rg_start = rgit->rg_start;
+      newrg->rg_end = rgit->rg_start + size;
+
+      if(rgit->rg_start + size < rgit->rg_end){
+        rgit->rg_start = rgit->rg_start + size;
+        return 0; 
+      }
+      else{
+        if(rgit->rg_next != NULL){
+
+          rgit->rg_start = rgit->rg_next->rg_start;
+          rgit->rg_end = rgit->rg_next->rg_end;
+          struct vm_rg_struct* tmp = rgit->rg_next;
+          rgit->rg_next = rgit->rg_next->rg_next;
+          free(tmp);
+        }
+        else{
+          rgit->rg_start = rgit->rg_end;	//dummy, size 0 region
+          rgit->rg_next = NULL;
+        }
+      }
+    }
+    else{
+      rgit = rgit->rg_next;
+    }
+  }
+  if(newrg->rg_start == -1) return -1;
 
   return 0;
 }

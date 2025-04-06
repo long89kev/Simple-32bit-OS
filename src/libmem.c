@@ -358,7 +358,7 @@ int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
   if (pg_getpage(mm, pgn, &fpn, caller) != 0)
     return -1; /* invalid page access */
 
-  int phy_addr = (pgn << PAGING_ADDR_FPN_LOBIT) + off; //physical addr = page * bit of 1_page + offset
+  int phy_addr = (fpn << PAGING_ADDR_FPN_LOBIT) + off; //physical addr = frame_num * bit of 1_frame + offset
   MEMPHY_write(caller->mram, phy_addr, value);    //write value to phy addr
   /* TODO
    *  MEMPHY_write(caller->mram, phyaddr, value);
@@ -412,7 +412,7 @@ int libread(
 
   /* TODO update result of reading action*/
   
-  destination = (uint32_t*) &data;   
+  *destination = data;   
 #ifdef IODUMP
   printf("read region=%d offset=%d value=%d\n", source, offset, data);
 #ifdef PAGETBL_DUMP

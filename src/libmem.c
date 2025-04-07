@@ -83,7 +83,6 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
  
     *alloc_addr = rgnode.rg_start;
 
-    pthread_mutex_unlock(&mmvm_lock);
     return 0;
   }
 
@@ -254,18 +253,21 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
 
     /* TODO: Play with your paging theory here */
     /* Find victim page */
-    find_victim_page(caller->mm, &vicpgn);
+    // find_victim_page(caller->mm, &vicpgn);
+    if (find_victim_page(caller->mm, &vicpgn) != 0) {
+      return -1; // i think we should have case when cannot find a victim page
+    }
     int vicframe_num = PAGING_FPN(caller->mm->pgd[vicpgn]);
     /* Get free frame in MEMSWP */
     MEMPHY_get_freefp(caller->active_mswp, &swpfpn);
-
+    
     /* TODO: Implement swap frame from MEMRAM to MEMSWP and vice versa*/
     __swap_cp_page(caller->mram, vicframe_num, caller->active_mswp, swpfpn); //swap content victim từ ram vào swpfpn trong active_swap
     /* TODO copy victim frame to swap 
-     * SWP(vicfpn <--> swpfpn)
-     * SYSCALL 17 sys_memmap 
-     * with operation SYSMEM_SWP_OP
-     */
+    * SWP(vicfpn <--> swpfpn)
+    * SYSCALL 17 sys_memmap 
+    * with operation SYSMEM_SWP_OP
+    */
     //struct sc_regs regs;
     //regs.a1 =...
     //regs.a2 =...
@@ -296,6 +298,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     //pte_set_fpn();
 
     enlist_pgn_node(&caller->mm->fifo_pgn,pgn);
+
   }
 
   *fpn = PAGING_FPN(mm->pgd[pgn]);

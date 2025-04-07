@@ -118,7 +118,7 @@ int vmap_page_range(struct pcb_t *caller,           // process call
     int swap_frame_id;
     uint32_t * pte = &caller->mm->pgd[pgn];
 
-    MEMPHY_get_freefp(pte, &swap_frame_id); //allocate frame_id from secondary storage to swap
+    MEMPHY_get_freefp(caller->active_mswp, &swap_frame_id); //allocate frame_id from secondary storage to swap
     pte_set_swap(pte, 0, swap_frame_id);    // set swap bit and val for the page 
 
     addr += PAGING_PAGESZ;  //move the addr to the addr of the next page

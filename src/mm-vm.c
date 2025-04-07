@@ -57,16 +57,15 @@ struct vm_rg_struct *get_vm_area_node_at_brk(struct pcb_t *caller, int vmaid, in
   struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid); //get vm area by vmaid
   
   newrg = malloc(sizeof(struct vm_rg_struct)); //allocate mem for new region
-  int aligned_size = alignedsz; 
   // check if increase sbrk exceeds VMA boundary (forum, teacher said) not sure, need check
-  if (cur_vma->sbrk + aligned_size > cur_vma->vm_end) {
+  if (cur_vma->sbrk + alignedsz > cur_vma->vm_end) {
     return NULL; 
   }
   
   /* TODO: update the newrg boundary
   */
  newrg->rg_start = cur_vma->sbrk;  //set start address to the top pointing of current vma, read function name
- newrg->rg_end = newrg->rg_start + size; //basic stuff
+ newrg->rg_end = newrg->rg_start + alignedsz; //basic stuff
  
  cur_vma->sbrk = newrg->rg_end; //advance sbrk to the end of the new region (sbrk lift up)
  //STILL NOT SURE, FIX IF I MISUNDERSTAND ANYTHING
@@ -95,8 +94,10 @@ int validate_overlap_vm_area(struct pcb_t *caller, int vmaid, int vmastart, int 
       (vma->vm_start <= vmastart && vmastart <= vma->vm_end) ||
       //exist vma overlaps with new area's end
       (vma->vm_start <= vmaend && vmaend <= vma->vm_end) ||
-      //exist vma is entirely within the new area
-      (vmastart <= vma->vm_start && vma->vm_end <= vmaend)
+      //exist vma is entirely within the new area // no need but include for sure
+      (vmastart <= vma->vm_start && vma->vm_end <= vmaend) ||
+      //new area inside exist vma // no need but include for sure
+      (vma->vm_start <= vmastart && vmaend <= vma->vm_end)      
       )
     { 
         return -1;

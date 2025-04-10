@@ -54,21 +54,30 @@ struct vm_rg_struct *get_vm_area_node_at_brk(struct pcb_t *caller, int vmaid, in
 {
   struct vm_rg_struct * newrg; //declare new memory region
   /* TODO retrive current vma to obtain newrg, current comment out due to compiler redundant warning*/
+  if(caller == NULL || caller->mm == NULL) {
+    return NULL; //check if caller or mm is null
+  }
+
   struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid); //get vm area by vmaid
+  if(cur_vma == NULL) {
+    return NULL; //check if cur_vma is null
+  }
   
   newrg = malloc(sizeof(struct vm_rg_struct)); //allocate mem for new region
   // check if increase sbrk exceeds VMA boundary (forum, teacher said) not sure, need check
   if (cur_vma->sbrk + alignedsz > cur_vma->vm_end) {
+    free(newrg); //free new region if sbrk exceeds vma boundary to prevent memory leak
     return NULL; 
   }
   
   /* TODO: update the newrg boundary
   */
- newrg->rg_start = cur_vma->sbrk;  //set start address to the top pointing of current vma, read function name
- newrg->rg_end = newrg->rg_start + alignedsz; //basic stuff
- 
- cur_vma->sbrk = newrg->rg_end; //advance sbrk to the end of the new region (sbrk lift up)
- //STILL NOT SURE, FIX IF I MISUNDERSTAND ANYTHING
+  newrg->rg_start = cur_vma->sbrk;  //set start address to the top pointing of current vma, read function name
+  newrg->rg_end = newrg->rg_start + alignedsz; //basic stuff
+  newrg->rg_next = NULL; //set next to null to indicate end of list
+
+  cur_vma->sbrk = newrg->rg_end; //advance sbrk to the end of the new region (sbrk lift up)
+  //STILL NOT SURE, FIX IF I MISUNDERSTAND ANYTHING
 
   return newrg;
 }

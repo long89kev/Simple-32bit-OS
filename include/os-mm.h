@@ -18,7 +18,7 @@ struct pgn_t{
 /*
  *  Memory region struct
  */
-struct vm_rg_struct {
+struct vm_rg_struct { //mem region, vùng nhỏ hơn trong area
    unsigned long vmaid;
    unsigned long rg_start;
    unsigned long rg_end;
@@ -29,18 +29,18 @@ struct vm_rg_struct {
 /*
  *  Memory area struct
  */
-struct vm_area_struct {
+struct vm_area_struct { //là area của 1 vùng nhớ trong process heap,stack,data... đc cấu tạo từ nhiều region
    unsigned long vm_id;
    unsigned long vm_start;
    unsigned long vm_end;
 
-   unsigned long sbrk;
+   unsigned long sbrk;  //cấp phát động, chỉ xài cho heap, khi sbrk chạm vm_end thì ko tiếp đc
 /*
  * Derived field
  * unsigned long vm_limit = vm_end - vm_start
  */
    struct mm_struct *vm_mm;
-   struct vm_rg_struct *vm_freerg_list;
+   struct vm_rg_struct *vm_freerg_list;  //những region còn trống trong area này, ko liên quan swap
    struct vm_area_struct *vm_next;
 };
 
@@ -80,7 +80,7 @@ struct memphy_struct {
    int cursor;
 
    /* Management structure */
-   struct framephy_struct *free_fp_list;
+   struct framephy_struct *free_fp_list; //những frame free, sử dụng cho swapping (đang xài page swapping)
    struct framephy_struct *used_fp_list;
 };
 

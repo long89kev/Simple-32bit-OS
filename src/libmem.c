@@ -193,7 +193,7 @@ int __free(struct pcb_t *caller, int vmaid, int rgid)
 
   free_reg->rg_next = NULL;
 
-  caller->mm->symrgtbl[rgid].rg_start = caller->mm->symrgtbl[rgid].rg_start = -1;
+  caller->mm->symrgtbl[rgid].rg_start = caller->mm->symrgtbl[rgid].rg_end = -1;
   int flag = enlist_vm_freerg_list(caller->mm, free_reg);
 
   if(flag != 0) return -1;

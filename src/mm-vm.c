@@ -132,9 +132,17 @@ int inc_vma_limit(struct pcb_t *caller, int vmaid, int inc_sz)
 
   int old_end = cur_vma->vm_end;
 
+  if(area == NULL) {
+    free(newrg); //free new region if area is null to prevent memory leak
+    return -1; //check if area is null
+  }
+
   /*Validate overlap of obtained region */
-  if (validate_overlap_vm_area(caller, vmaid, area->rg_start, area->rg_end) < 0)
+  if (validate_overlap_vm_area(caller, vmaid, area->rg_start, area->rg_end) < 0){
+    free(newrg); //free new region if overlap to prevent memory leak
+    free(area); //free area if overlap to prevent memory leak
     return -1; /*Overlap and failed allocation */
+  }
 
   /* TODO: Obtain the new vm area based on vmaid */
   //cur_vma->vm_end +=  inc_sz; //increase the virtual memory area limit by inc_sz //cai nay chua allign nen co the bi sai

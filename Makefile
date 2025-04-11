@@ -45,7 +45,7 @@ syscalltbl.lst: $(SRC)/syscall.tbl
 
 # Compile the whole OS simulation
 os: $(OBJ) syscalltbl.lst $(OS_OBJ)
-	$(MAKE) $(LFLAGS) $(OS_OBJ) -o os $(LIB)
+	$(MAKE) $(DEBUG) $(LFLAGS) $(OS_OBJ) -o os $(LIB)
 
 $(OBJ)/%.o: %.c ${HEADER} $(OBJ)
 	$(MAKE) $(CFLAGS) $< -o $@

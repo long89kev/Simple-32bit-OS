@@ -289,13 +289,13 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     /* SYSCALL 17 sys_memmap */
 
     /* Update page table */
-    pte_set_swap(caller->mm->pgd[vicpgn], swpfpn, 0); //swap out pgd[vic] vào swpfpn đang ở secondary
+    pte_set_swap(&caller->mm->pgd[vicpgn], 0, swpfpn); //swap out pgd[vic] vào swpfpn đang ở secondary
     //mm->pgd;
 
     /* Update its online status of the target page */
-    pte_set_fpn(caller->mm->pgd[pgn], vicpgn); //swap in cái pgn (target) vào vicpgn ở RAM
+    pte_set_fpn(&caller->mm->pgd[pgn], vicframe_num); //swap in cái pgn (target) vào vicpgn ở RAM
     //mm->pgd[pgn];
-    //pte_set_fpn();
+    //pte_set_fpn();S
 
     enlist_pgn_node(&caller->mm->fifo_pgn,pgn);
 
@@ -322,7 +322,7 @@ int pg_getval(struct mm_struct *mm, int addr, BYTE *data, struct pcb_t *caller)
   if (pg_getpage(mm, pgn, &fpn, caller) != 0)
     return -1; /* invalid page access */
     
-  int phy_addr = (pgn << PAGING_ADDR_FPN_LOBIT) + off; //physical addr = page * bit of 1_page + offset
+  int phy_addr = (fpn << PAGING_ADDR_FPN_LOBIT) + off; //physical addr = page * bit of 1_page + offset
   MEMPHY_read(caller->mram, phy_addr, data);    //read from phy addr (the phy addr also has a BYTE to store data)
 
 

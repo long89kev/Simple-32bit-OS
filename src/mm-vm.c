@@ -65,10 +65,10 @@ struct vm_rg_struct *get_vm_area_node_at_brk(struct pcb_t *caller, int vmaid, in
   
   newrg = malloc(sizeof(struct vm_rg_struct)); //allocate mem for new region
   // check if increase sbrk exceeds VMA boundary (forum, teacher said) not sure, need check
-  if (cur_vma->sbrk + alignedsz > cur_vma->vm_end) {
-    free(newrg); //free new region if sbrk exceeds vma boundary to prevent memory leak
-    return NULL; 
-  }
+  // if (cur_vma->sbrk + alignedsz > cur_vma->vm_end) {
+  //   free(newrg); //free new region if sbrk exceeds vma boundary to prevent memory leak
+  //   return NULL; 
+  // }
   
   /* TODO: update the newrg boundary
   */

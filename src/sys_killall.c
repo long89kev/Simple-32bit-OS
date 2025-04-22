@@ -13,6 +13,7 @@
 #include "stdio.h"
 #include "libmem.h"
 #include "string.h"
+#include "queue.h"
 
 int __sys_killall(struct pcb_t *caller, struct sc_regs* regs)
 {

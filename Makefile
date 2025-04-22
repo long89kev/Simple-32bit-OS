@@ -8,7 +8,7 @@ INCLUDE = include
 
 CC = gcc
 DEBUG = -g
-CFLAGS = -Wall -c $(DEBUG)
+CFLAGS = -Wall -c $(DEBUG) 
 LFLAGS = -Wall $(DEBUG)
 
 vpath %.c $(SRC)
@@ -17,7 +17,7 @@ vpath %.h $(INCLUDE)
 MAKE = $(CC) $(INC) 
 
 # Object files needed by modules
-MEM_OBJ = $(addprefix $(OBJ)/, paging.o mem.o cpu.o loader.o mm-vm.o mm.o mm-memphy.o libstd.o libmem.o)
+MEM_OBJ = $(addprefix $(OBJ)/, paging.o mem.o cpu.o loader.o)
 SYSCALL_OBJ = $(addprefix $(OBJ)/, syscall.o sys_killall.o sys_mem.o sys_listsyscall.o)
 OS_OBJ = $(addprefix $(OBJ)/, cpu.o mem.o loader.o queue.o os.o sched.o timer.o mm-vm.o mm.o mm-memphy.o libstd.o libmem.o)
 OS_OBJ += $(SYSCALL_OBJ)

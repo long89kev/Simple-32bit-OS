@@ -505,6 +505,9 @@ int __read(struct pcb_t *caller, int vmaid, int rgid, int offset, BYTE *data)
   if (currg == NULL || cur_vma == NULL) /* Invalid memory identify */
     return -1;
 
+  if(currg->rg_start + offset >= currg->rg_end)
+    return -1; 
+
   pg_getval(caller->mm, currg->rg_start + offset, data, caller);
 
   return 0;
@@ -517,6 +520,8 @@ int libread(
     uint32_t offset,    // Source address = [source] + [offset]
     uint32_t* destination)
 {
+pthread_mutex_lock(&mmvm_lock);
+
   BYTE data;
   int val = __read(proc, 0, source, offset, &data);
 
@@ -531,6 +536,7 @@ int libread(
   MEMPHY_dump(proc->mram);
 #endif
 
+pthread_mutex_unlock(&mmvm_lock);
   return val;
 }
 
@@ -562,6 +568,9 @@ int libwrite(
     uint32_t destination, // Index of destination register
     uint32_t offset)
 {
+pthread_mutex_lock(&mmvm_lock);
+int retur = __write(proc, 0, destination, offset, data);
+
 #ifdef IODUMP
   printf("write region=%d offset=%d value=%d\n", destination, offset, data);
 #ifdef PAGETBL_DUMP
@@ -570,7 +579,8 @@ int libwrite(
   MEMPHY_dump(proc->mram);
 #endif
 
-  return __write(proc, 0, destination, offset, data);
+pthread_mutex_unlock(&mmvm_lock);
+  return retur;
 }
 
 /*free_pcb_memphy - collect all memphy of pcb
@@ -609,33 +619,34 @@ int free_pcb_memph(struct pcb_t *caller)
  */
 int find_victim_page(struct mm_struct *mm, int *retpgn)
 {
-  struct pgn_t *pg = mm->fifo_pgn;
+  struct pgn_t **pg = &mm->fifo_pgn;
 
   /* TODO: Implement the theorical mechanism to find the victim page */
-  if(pg == NULL){ //nothing in the fifo queue
+  if((*pg) == NULL){ //nothing in the fifo queue
     *retpgn = -1;
     //free(pg);
     return -1;
   }
-  else if(pg && pg->pg_next == NULL){
-    *retpgn = pg->pgn; //1 element in fifo queue
+  else if((*pg) && (*pg)->pg_next == NULL){
+    *retpgn = (*pg)->pgn; //1 element in fifo queue
     free(pg);
     mm->fifo_pgn = NULL;
     return 0;
   }
   
-  struct pgn_t* prev = pg; //track behind pg
-  pg = pg->pg_next; 
+  struct pgn_t** prev = pg; //track behind pg
+  pg = &((*pg)->pg_next); 
 
-  while(pg->pg_next != NULL){
-    pg = pg->pg_next; //pg become the last node
-    prev = prev->pg_next;   //prev is second last node
+  while((*pg)->pg_next != NULL){
+    pg = &((*pg)->pg_next); //pg become the last node
+    prev = &((*prev)->pg_next);   //prev is second last node
   }
 
-  *retpgn = pg->pgn;
-  prev->pg_next = NULL;
+  *retpgn = (*pg)->pgn;
+  (*prev)->pg_next = NULL;
 
-  free(pg);
+  free(*prev);
+  free(*pg);
 
   return 0;
 }
@@ -665,16 +676,16 @@ int get_free_vmrg_area(struct pcb_t *caller, int vmaid, int size, struct vm_rg_s
   // ..
   while(rgit != NULL && rgit->vmaid == vmaid){
 
-    if(rgit->rg_start + size <= rgit->rg_end){
+    if(rgit->rg_start + size <= rgit->rg_end){ //find the fit one
       newrg->rg_start = rgit->rg_start;
-      newrg->rg_end = rgit->rg_start + size;
+      newrg->rg_end = rgit->rg_start + size;  //assign the node to newrg then process
 
-      if(rgit->rg_start + size < rgit->rg_end){
+      if(rgit->rg_start + size < rgit->rg_end){   //size < end of that node, reset the region, node is taken so return 
         rgit->rg_start = rgit->rg_start + size;
         return 0; 
       }
       else{
-        if(rgit->rg_next != NULL){
+        if(rgit->rg_next != NULL){    //more nodes available
 
           rgit->rg_start = rgit->rg_next->rg_start;
           rgit->rg_end = rgit->rg_next->rg_end;

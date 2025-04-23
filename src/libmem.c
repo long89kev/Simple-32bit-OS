@@ -42,7 +42,66 @@ int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct *rg_elmt)
     rg_elmt->rg_next = rg_node;
 
   /* Enlist the new region */
-  mm->mmap->vm_freerg_list = rg_elmt;
+
+  //mục đích phần code thêm là nối rg_next vào vm_freerg_list
+  rg_elmt->rg_next = NULL;
+  struct vm_rg_struct ** tmp =& mm->mmap->vm_freerg_list; //tmp để duyệt freerg_list 
+  
+  //nothing in list
+  if (!(*tmp)) {
+    *tmp = rg_elmt;
+    return 0;
+  }
+
+  //check elmt nằm dưới ô nhớ trống đầu tiên 
+  if(rg_elmt->rg_start < (*tmp)->rg_start){
+    if(rg_elmt->rg_end==(*tmp)->rg_start) {
+      (*tmp)->rg_start = rg_elmt->rg_start;   //nếu elmt có rg_end trùng với 1 node trong list thì hợp nhất luôn vs node đó
+      free(rg_elmt);
+    } 
+    else {
+      rg_elmt->rg_next = *tmp;
+      *tmp = rg_elmt;
+    }
+  }
+
+  //iterate through list
+  while(*tmp){
+    //check if elmt should be put in the last 
+    if((*tmp)->rg_next == NULL){
+      if ((*tmp)->rg_end == rg_elmt->rg_start) {
+        //nếu elmt có rg_end trùng với 1 node trong list thì hợp nhất luôn vs node đó
+        (*tmp)->rg_end = rg_elmt->rg_end;
+        free(rg_elmt);
+      }
+      else{
+      (*tmp)->rg_next = rg_elmt;
+      }
+      return 0;
+    }
+
+    //check if elmt falls in the middle
+    if((*tmp)->rg_next->rg_start > rg_elmt->rg_start){
+      // check nếu end của elmt trùng với đầu của 1 node trong list, hợp nhất như trên
+      if(rg_elmt->rg_end == (*tmp)->rg_next->rg_start) {
+        (*tmp)->rg_next->rg_start = rg_elmt->rg_start;    
+        free(rg_elmt);
+      }
+      // check nếu start của elmt trùng với end của 1 node trong list
+      else if(rg_elmt->rg_start == (*tmp)->rg_end){
+        (*tmp)->rg_end = rg_elmt->rg_end;
+        free(rg_elmt);
+      }
+      //ko trùng đầu đuôi gì thì nối vô bth
+      else{
+        rg_elmt->rg_next = (*tmp)->rg_next;
+        (*tmp)->rg_next = rg_elmt;
+      }
+    }
+    (*tmp) = &(*tmp)->rg_next;
+  }
+
+  //mm->mmap->vm_freerg_list = rg_elmt;
 
 
   return 0;
@@ -202,9 +261,10 @@ int __free(struct pcb_t *caller, int vmaid, int rgid)
   free_reg->rg_start = cur_rg->rg_start;
   free_reg->vmaid = cur_rg->vmaid;
 
-  free_reg->rg_next = NULL;
+  //free_reg->rg_next = NULL;
 
-  caller->mm->symrgtbl[rgid].rg_start = caller->mm->symrgtbl[rgid].rg_end = -1;
+  cur_rg->rg_start = cur_rg->rg_end = 0; //or -1
+  cur_rg->rg_next = NULL;
   int flag = enlist_vm_freerg_list(caller->mm, free_reg);
 
   if(flag != 0) {

@@ -267,7 +267,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
   { /* Page is not online, make it actively living */
     int vicpgn, swpfpn; 
     //int vicfpn;
-    //uint32_t vicpte;
+    uint32_t vicpte;
 
     int tgtfpn = PAGING_PTE_SWP(pte);//the target frame storing our variable
 
@@ -309,8 +309,8 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     /* SYSCALL 17 sys_memmap */
 
     /* Update page table */
-    pte_set_swap(&caller->mm->pgd[vicpgn], 0, swpfpn); //swap out pgd[vic] vào swpfpn đang ở secondary
-    //mm->pgd;
+    pte_set_swap(&caller->mm->pgd[vicpgn], caller->active_mswp_id, swpfpn); //swap out pgd[vic] vào swpfpn đang ở secondary
+    //mm->pgd[vicpgn] = ;
 
     /* Update its online status of the target page */
     pte_set_fpn(&caller->mm->pgd[pgn], vicframe_num); //swap in cái pgn (target) vào vicpgn ở RAM

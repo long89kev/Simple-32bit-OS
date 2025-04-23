@@ -227,6 +227,14 @@ int liballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
   /* TODO Implement allocation on vm area 0 */
   int addr;
   int ret = __alloc(proc, 0, reg_index, size, &addr);
+#ifdef IODUMP
+  printf("===== PHYSICAL MEMORY AFTER ALLOCATION =====\n");
+  printf("PID=%d - Region=%d - Address=%08ld - Size=%d byte\n", proc->pid, reg_index, addr * sizeof(uint32_t), size);
+#ifdef PAGETBL_DUMP
+  print_pgtbl(proc, 0, -1); // print max TBL
+#endif
+  MEMPHY_dump(proc->mram);
+#endif
   /* By default using vmaid = 0 */
   return ret;
 }
@@ -242,6 +250,14 @@ int libfree(struct pcb_t *proc, uint32_t reg_index)
   /* TODO Implement free region */
   int ret = __free(proc, 0, reg_index);
   /* By default using vmaid = 0 */
+#ifdef IODUMP
+  printf("===== PHYSICAL MEMORY AFTER DEALLOCATION =====\n");
+  printf("PID=%d - Region=%d\n", proc->pid, reg_index);
+#ifdef PAGETBL_DUMP
+  print_pgtbl(proc, 0, -1); // print max TBL
+#endif
+  MEMPHY_dump(proc->mram);
+#endif
   return ret;
 }
 

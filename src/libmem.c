@@ -122,7 +122,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
     else{
       inc_vma_limit(caller, vmaid, inc_sz);
       caller->mm->symrgtbl[rgid].rg_start = old_sbrk;
-      caller->mm->symrgtbl[rgid].rg_end = old_sbrk + size;
+      caller->mm->symrgtbl[rgid].rg_end = old_sbrk + inc_sz;
       caller->mm->symrgtbl[rgid].vmaid = vmaid;
       *alloc_addr = rgnode.rg_start;
       cur_vma->sbrk += size;

@@ -284,6 +284,8 @@ int __free(struct pcb_t *caller, int vmaid, int rgid)
 int liballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
 {
   /* TODO Implement allocation on vm area 0 */
+pthread_mutex_lock(&mmvm_lock);
+
   int addr;
   int ret = __alloc(proc, 0, reg_index, size, &addr);
 #ifdef IODUMP
@@ -294,6 +296,8 @@ int liballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
 #endif
   MEMPHY_dump(proc->mram);
 #endif
+
+pthread_mutex_unlock(&mmvm_lock);
   /* By default using vmaid = 0 */
   return ret;
 }
@@ -307,6 +311,8 @@ int liballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
 int libfree(struct pcb_t *proc, uint32_t reg_index)
 {
   /* TODO Implement free region */
+pthread_mutex_lock(&mmvm_lock);
+
   int ret = __free(proc, 0, reg_index);
   /* By default using vmaid = 0 */
 #ifdef IODUMP
@@ -317,6 +323,8 @@ int libfree(struct pcb_t *proc, uint32_t reg_index)
 #endif
   MEMPHY_dump(proc->mram);
 #endif
+
+pthread_mutex_unlock(&mmvm_lock);
   return ret;
 }
 
@@ -352,12 +360,12 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     if (find_victim_page(caller->mm, &vicpgn) != 0) {
       return -1; // i think we should have case when cannot find a victim page
     }
-    int vicframe_num = PAGING_FPN(caller->mm->pgd[vicpgn]);
+    int vicframe_num = PAGING_PTE_FPN(caller->mm->pgd[vicpgn]);
     /* Get free frame in MEMSWP */
     MEMPHY_get_freefp(caller->active_mswp, &swpfpn);
     
     /* TODO: Implement swap frame from MEMRAM to MEMSWP and vice versa*/
-    __swap_cp_page(caller->mram, vicframe_num, caller->active_mswp, swpfpn); //swap content victim từ ram vào swpfpn trong active_swap
+    //__swap_cp_page(caller->mram, vicframe_num, caller->active_mswp, swpfpn); //swap content victim từ ram vào swpfpn trong active_swap
     /* TODO copy victim frame to swap 
     * SWP(vicfpn <--> swpfpn)
     * SYSCALL 17 sys_memmap 
@@ -367,9 +375,9 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     //regs.a1 =...
     //regs.a2 =...
     //regs.a3 =..
-
+    __mm_swap_page(caller, vicframe_num, tgtfpn);
     /* SYSCALL 17 sys_memmap */
-    __swap_cp_page(caller->active_mswp, tgtfpn, caller->mram, vicframe_num); //swap content target từ active_swap vào RAM victim 
+    //__swap_cp_page(caller->active_mswp, tgtfpn, caller->mram, vicframe_num); //swap content target từ active_swap vào RAM victim 
     /* TODO copy target frame form swap to mem 
      * SWP(tgtfpn <--> vicfpn)
      * SYSCALL 17 sys_memmap
@@ -419,6 +427,7 @@ int pg_getval(struct mm_struct *mm, int addr, BYTE *data, struct pcb_t *caller)
   }
     
   int phy_addr = (fpn << PAGING_ADDR_FPN_LOBIT) + off; //physical addr = page * bit of 1_page + offset
+  *data = 0; //the other referenced this func does not initialize data
   MEMPHY_read(caller->mram, phy_addr, data);    //read from phy addr (the phy addr also has a BYTE to store data)
 
 
@@ -459,6 +468,7 @@ int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
   }
 
   int phy_addr = (fpn << PAGING_ADDR_FPN_LOBIT) + off; //physical addr = frame_num * bit of 1_frame + offset
+  //value = 0;
   MEMPHY_write(caller->mram, phy_addr, value);    //write value to phy addr
   /* TODO
    *  MEMPHY_write(caller->mram, phyaddr, value);

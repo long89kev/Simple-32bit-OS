@@ -90,7 +90,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
   {
     caller->mm->symrgtbl[rgid].rg_start = rgnode.rg_start;
     caller->mm->symrgtbl[rgid].rg_end = rgnode.rg_end;
-    caller->mm->symrgtbl[rgid].vmaid = rgnode.vmaid;
+    //caller->mm->symrgtbl[rgid].vmaid = rgnode.vmaid;
  
     *alloc_addr = rgnode.rg_start;
 
@@ -108,52 +108,51 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
   /* TODO retrive old_sbrk if needed, current comment out due to compiler redundant warning*/
   int old_sbrk = cur_vma->sbrk;
 
-  if(vmaid == 0){ //heap
-    int gap_size = cur_vma->vm_end - old_sbrk;
+   //heap
+    inc_vma_limit(caller, vmaid, inc_sz);
+    //int gap_size = cur_vma->vm_end - old_sbrk;
     
-    if(gap_size >= size){
-      cur_vma->sbrk = cur_vma->sbrk + size;
+    if(cur_vma->sbrk - old_sbrk != size){
+      // cur_vma->sbrk = cur_vma->sbrk + size;
 
-      caller->mm->symrgtbl[rgid].rg_start = old_sbrk;
-      caller->mm->symrgtbl[rgid].rg_end = old_sbrk + size;
-      caller->mm->symrgtbl[rgid].vmaid = vmaid;
-      *alloc_addr = rgnode.rg_start;
+      // caller->mm->symrgtbl[rgid].rg_start = old_sbrk;
+      // caller->mm->symrgtbl[rgid].rg_end = old_sbrk + size;
+      
+      *alloc_addr = NULL;
+      return -1;
+
     }
     else{
-      inc_vma_limit(caller, vmaid, inc_sz);
       caller->mm->symrgtbl[rgid].rg_start = old_sbrk;
-      caller->mm->symrgtbl[rgid].rg_end = old_sbrk + size;
-      caller->mm->symrgtbl[rgid].vmaid = vmaid;
-      *alloc_addr = rgnode.rg_start;
-      cur_vma->sbrk += size;
+      caller->mm->symrgtbl[rgid].rg_end = cur_vma->sbrk;
+      //i think the call on inc_vma_limit got the get_vm_area_node_at_brk which increased the cur_vma->sbrk
+      *alloc_addr = old_sbrk;
+      //cur_vma->sbrk += size;
       
     }
     pthread_mutex_unlock(&mmvm_lock);
     return 0;
-  } 
-  else if(vmaid == 1){
-    int gap_size = old_sbrk - cur_vma->vm_end;
-    if(gap_size >= size){
-      caller->mm->symrgtbl[rgid].rg_start = old_sbrk - size;
-      caller->mm->symrgtbl[rgid].rg_end = old_sbrk;
-      caller->mm->symrgtbl[rgid].vmaid = vmaid;
-      *alloc_addr = rgnode.rg_end;
-    }
-    else{
-      inc_vma_limit(caller, vmaid, inc_sz);
-      caller->mm->symrgtbl[rgid].rg_start = old_sbrk - size;
-      caller->mm->symrgtbl[rgid].rg_end = old_sbrk;
-      caller->mm->symrgtbl[rgid].vmaid = vmaid;
-      *alloc_addr = rgnode.rg_start;
-      cur_vma->sbrk -= size;
-    }
-    pthread_mutex_unlock(&mmvm_lock);
-    return 0;
-  }
-  else{
-    pthread_mutex_unlock(&mmvm_lock);
-    return -1;
-  }
+  
+  // else if(vmaid == 1){
+  //   int gap_size = old_sbrk - cur_vma->vm_end;
+  //   if(gap_size >= size){
+  //     caller->mm->symrgtbl[rgid].rg_start = old_sbrk - size;
+  //     caller->mm->symrgtbl[rgid].rg_end = old_sbrk;
+  //     caller->mm->symrgtbl[rgid].vmaid = vmaid;
+  //     *alloc_addr = rgnode.rg_end;
+  //   }
+  //   else{
+  //     inc_vma_limit(caller, vmaid, inc_sz);
+  //     caller->mm->symrgtbl[rgid].rg_start = old_sbrk - size;
+  //     caller->mm->symrgtbl[rgid].rg_end = old_sbrk;
+  //     caller->mm->symrgtbl[rgid].vmaid = vmaid;
+  //     *alloc_addr = rgnode.rg_start;
+  //     cur_vma->sbrk -= size;
+  //   }
+  //   pthread_mutex_unlock(&mmvm_lock);
+  //   return 0;
+  // }
+  
     /* TODO INCREASE THE LIMIT as inovking systemcall 
    * sys_memap with SYSMEM_INC_OP 
    */
@@ -227,6 +226,14 @@ int liballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
   /* TODO Implement allocation on vm area 0 */
   int addr;
   int ret = __alloc(proc, 0, reg_index, size, &addr);
+#ifdef IODUMP
+  printf("===== PHYSICAL MEMORY AFTER ALLOCATION =====\n");
+  printf("PID=%d - Region=%d - Address=%08ld - Size=%d byte\n", proc->pid, reg_index, addr * sizeof(uint32_t), size);
+#ifdef PAGETBL_DUMP
+  print_pgtbl(proc, 0, -1); // print max TBL
+#endif
+  MEMPHY_dump(proc->mram);
+#endif
   /* By default using vmaid = 0 */
   return ret;
 }
@@ -242,6 +249,14 @@ int libfree(struct pcb_t *proc, uint32_t reg_index)
   /* TODO Implement free region */
   int ret = __free(proc, 0, reg_index);
   /* By default using vmaid = 0 */
+#ifdef IODUMP
+  printf("===== PHYSICAL MEMORY AFTER DEALLOCATION =====\n");
+  printf("PID=%d - Region=%d\n", proc->pid, reg_index);
+#ifdef PAGETBL_DUMP
+  print_pgtbl(proc, 0, -1); // print max TBL
+#endif
+  MEMPHY_dump(proc->mram);
+#endif
   return ret;
 }
 

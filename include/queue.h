@@ -15,8 +15,6 @@ void enqueue(struct queue_t * q, struct pcb_t * proc);
 
 struct pcb_t * queue_traversal(struct queue_t * q, int *idx);
 
-void delete_pid(struct queue_t * q, uint32_t pid);
-
 struct pcb_t * dequeue(struct queue_t * q);
 
 int empty(struct queue_t * q);

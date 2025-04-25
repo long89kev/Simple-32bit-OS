@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "queue.h"
+#include "libmem.h"
 
 int empty(struct queue_t * q) {
         if (q == NULL) return 1;
@@ -24,26 +25,12 @@ struct pcb_t * queue_traversal(struct queue_t * q, int *idx) {
         return proc;
 }
 
-void delete_pid(struct queue_t * q, uint32_t pid) {
-        if(q == NULL || q->size == 0) return;
-        for (int i = 0; i < q->size; i++) {
-                if (q->proc[i]->pid == pid) {
-                        for (int j = i; j < q->size - 1; j++) {
-                                q->proc[j] = q->proc[j + 1];
-                        }
-                        q->size--;
-                        return;
-                }
-        }
-        return;
-}
-
 struct pcb_t * dequeue(struct queue_t * q) {
         /* TODO: return a pcb whose prioprity is the highest
          * in the queue [q] and remember to remove it from q
          * */
         
-        #ifdef MLQ_SCHED
+        #ifndef MLQ_SCHED
                 if (q == NULL || q->size == 0) return NULL;
 
                 struct pcb_t *getProc = malloc(sizeof(struct pcb_t));

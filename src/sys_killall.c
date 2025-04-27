@@ -106,6 +106,6 @@ int __sys_killall(struct pcb_t *caller, struct sc_regs* regs)
 #endif
     libfree(caller, memrg);
     printf("Total %d processes terminated\n", killed_count);
-    return 0;
+    return killed_count;
 }
  

@@ -13,11 +13,16 @@
 #include "stdio.h"
 #include "libmem.h"
 #include "string.h"
+#include "queue.h"
+#include <stdlib.h>
 
 int __sys_killall(struct pcb_t *caller, struct sc_regs* regs)
 {
     char proc_name[100];
     uint32_t data;
+
+    //demo for systemkill all
+    char temp_name[100];
 
     //hardcode for demo only
     uint32_t memrg = regs->a1;
@@ -28,49 +33,79 @@ int __sys_killall(struct pcb_t *caller, struct sc_regs* regs)
     data = 0;
     while(data != -1){
         libread(caller, memrg, i, &data);
-        proc_name[i]= data;
-        if(data == -1) proc_name[i]='\0';
+        // proc_name[i]= data;
+        // if(data == -1) proc_name[i]='\0';
+        temp_name[i] = data;
+        if(data == -1) temp_name[i]='\0';
+        // printf("proc_name[%d] = %c\n", i, data);
         i++;
     }
-    printf("The procname retrieved from memregionid %d is \"%s\"\n", memrg, proc_name);
+    // printf("The procname retrieved from memregionid %d is \"%s\"\n", memrg, proc_name);
+    // demo syscall kill all
+    printf("Theprocname retrieved from memregionid %d is \"%s\"\n", memrg, temp_name);
 
     /* TODO: Traverse proclist to terminate the proc
     *       stcmp to check the process match proc_name
     */
 
-    struct pcb_t * proc = NULL;
-    int idx = 0;
-    int pid_to_kill[MAX_PRIO * 10 + 5];
-    int pid_to_kill_count = 0;
+    //Just for demo system kill all
+    proc_name[0] = '\0';
+    strcat(proc_name, "input/proc/");
+    strcat(proc_name, temp_name);
+    printf("fullprocname = \"%s\"\n", proc_name);
 
-    while((proc = queue_traversal(caller->running_list, &idx)) != NULL) {
-        if (strcmp(proc->path, proc_name) == 0) {
-            pid_to_kill[pid_to_kill_count++] = proc->pid;
+    struct queue_t *running_list = caller->running_list;
+    #ifdef MLQ_SCHED
+        struct queue_t *mlq_ready_queue = caller->mlq_ready_queue;
+    #endif
+    struct pcb_t *target = NULL;
+    int killed_count = 0;
+
+    if (running_list->size > 0) {
+        int n = running_list->size;
+        for (int i = 0; i < n; i++) {
+            target = dequeue(running_list);
+            if (target == NULL) continue;
+
+            if (target->pid == 0 || target == caller) {
+                enqueue(running_list, target);
+                continue;
+            }
+
+            if (strcmp(target->path, proc_name) == 0) {
+                printf("terminated process with pid %d\n", target->pid);
+                target->pc = target->code->size; //Set the pc to the end of code segment
+                killed_count++;
+            } else {
+                enqueue(running_list, target);  
+            }
         }
     }
+#ifdef MLQ_SCHED
+    if (mlq_ready_queue->size > 0) {
+        int n = mlq_ready_queue->size;
+        for (int i = 0; i < n; i++) {
+            target = dequeue(mlq_ready_queue);
+            if (target == NULL) continue;
 
-    idx = 0;
+            if (target->pid == 0 || target == caller) {
+                enqueue(mlq_ready_queue, target);
+                continue;
+            }
 
-    while((proc = queue_traversal(caller->mlq_ready_queue, &idx)) != NULL) {
-        if (strcmp(proc->path, proc_name) == 0) {
-            pid_to_kill[pid_to_kill_count++] = proc->pid;
+            if (strcmp(target->path, proc_name) == 0) {
+                printf("terminated process with pid %d\n", target->pid);
+                libfree(target, memrg);  // Free memory region
+                free(target);  // Free PCB
+                killed_count++;
+            } else {
+                enqueue(mlq_ready_queue, target);  // Put back in queue
+            }
         }
     }
-    
-    //caller->running_list
-    // caller->mlq_ready_queue
-
-    /* TODO Maching and terminating 
-    *       all processes with given
-    *        name in var proc_name
-    */
-
-    while(pid_to_kill_count > 0) {
-        int pid = pid_to_kill[--pid_to_kill_count];
-        delete_pid(caller->running_list, pid);
-        delete_pid(caller->mlq_ready_queue, pid);
-    }
-
-    return 0; 
+#endif
+    libfree(caller, memrg);
+    printf("Total %d processes terminated\n", killed_count);
+    return killed_count;
 }
  

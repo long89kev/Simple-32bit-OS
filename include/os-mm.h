@@ -18,7 +18,7 @@ struct pgn_t{
 /*
  *  Memory region struct
  */
-struct vm_rg_struct {
+struct vm_rg_struct { 
    unsigned long vmaid;
    unsigned long rg_start;
    unsigned long rg_end;
@@ -29,18 +29,18 @@ struct vm_rg_struct {
 /*
  *  Memory area struct
  */
-struct vm_area_struct {
+struct vm_area_struct { 
    unsigned long vm_id;
    unsigned long vm_start;
    unsigned long vm_end;
 
-   unsigned long sbrk;
+   unsigned long sbrk;  
 /*
  * Derived field
  * unsigned long vm_limit = vm_end - vm_start
  */
    struct mm_struct *vm_mm;
-   struct vm_rg_struct *vm_freerg_list;
+   struct vm_rg_struct *vm_freerg_list;  
    struct vm_area_struct *vm_next;
 };
 
@@ -80,7 +80,7 @@ struct memphy_struct {
    int cursor;
 
    /* Management structure */
-   struct framephy_struct *free_fp_list;
+   struct framephy_struct *free_fp_list; 
    struct framephy_struct *used_fp_list;
 };
 

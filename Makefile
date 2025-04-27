@@ -8,7 +8,7 @@ INCLUDE = include
 
 CC = gcc
 DEBUG = -g
-CFLAGS = -Wall -c $(DEBUG)
+CFLAGS = -Wall -c $(DEBUG) 
 LFLAGS = -Wall $(DEBUG)
 
 vpath %.c $(SRC)
@@ -40,7 +40,8 @@ syscalltbl.lst: $(SRC)/syscall.tbl
 	@echo $(OS_OBJ)
 	chmod +x $(SRC)/syscalltbl.sh
 	$(SRC)/syscalltbl.sh $< $(SRC)/$@ 
-#	mv $(OBJ)/syscalltbl.lst $(INCLUDE)/
+	# $(SRC)/syscalltbl.sh $< $@ 
+	# mv $(OBJ)/syscalltbl.lst $(INCLUDE)/
 
 # Compile the whole OS simulation
 os: $(OBJ) syscalltbl.lst $(OS_OBJ)

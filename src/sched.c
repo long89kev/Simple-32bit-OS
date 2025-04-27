@@ -59,8 +59,8 @@ struct pcb_t * get_mlq_proc(void) {
 
 	int found_proc = 0;
 
-	for(int i = 0; i < MAX_PRIO && !found_proc; ++i) {
-		unsigned long prio = (curr_prio + i) % MAX_PRIO;
+	for(int prio = 0; prio < MAX_PRIO && !found_proc; ++prio) {
+		// unsigned long prio = (curr_prio + i) % MAX_PRIO;
 
 		if(!empty(&mlq_ready_queue[prio])) {
 
@@ -79,7 +79,7 @@ struct pcb_t * get_mlq_proc(void) {
 					curr_slot = 0;
 				}
 			}
-			break;
+			// break;
 		}
 	}
 
